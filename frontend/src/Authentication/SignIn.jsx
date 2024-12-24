@@ -1,39 +1,93 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 
 const SignIn = () => {
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const response = await axios.post("http://localhost:3000/api/user/login", formData);
+      console.log("User signed in:", response.data);
+
+      // Save the token in localStorage or other storage if required
+      localStorage.setItem("authToken", response.data.token);
+
+      alert("Login successful!");
+      // Redirect user after successful login, e.g., to the dashboard
+      window.location.href = "/dashboard";
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "An error occurred. Please try again."
+      );
+    }
+  };
+
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100 p-4">
-      <div className="w-full max-w-md bg-white p-6 shadow-lg rounded-lg">
-        <h1 className="text-2xl font-bold text-center text-gray-800">
-          Sign in
+    <div
+      className="min-h-screen flex justify-center items-center"
+      style={{
+        backgroundImage: "url('/path/to/your/background.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-3xl backdrop-blur-md">
+        <h1 className="text-3xl font-bold text-center text-gray-800">
+          Sign In
         </h1>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <a href="/signup" className="text-green-600 hover:underline">
-            Create now
-          </a>
+        <p className="mt-2 text-center text-gray-600">
+          Welcome back! Let’s continue with,
         </p>
 
-        <form className="mt-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+        <div className="flex gap-4 mt-6">
+            <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
+                alt="Google"
+                className="w-20 h-6"
+              />
+            </button>
+          </div>
+
+        <div className="flex items-center my-6">
+            <span className="flex-1 h-px bg-gray-300"></span>
+            <span className="mx-4 text-gray-500">or Sign in with</span>
+            <span className="flex-1 h-px bg-gray-300"></span>
+          </div>
+
+        {error && <div className="text-red-500 text-center my-2">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-6">
+            <label className="block text-sm text-gray-600">Your Email</label>
             <input
               type="email"
-              placeholder="Email"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              name="email"
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-5 py-3 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
             />
           </div>
 
-          <div className="mb-4 relative">
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+          <div className="mb-6">
+            <label className="block text-sm text-gray-600">Your Password</label>
             <input
               type="password"
-              placeholder="Password"
-              className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              name="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-5 py-3 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
             />
           </div>
 
@@ -41,50 +95,32 @@ const SignIn = () => {
             <label className="flex items-center text-sm text-gray-600">
               <input
                 type="checkbox"
-                className="h-4 w-4 border-gray-300 rounded"
+                className="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
               />
-              <span className="ml-2">Save account</span>
+              <span className="ml-2">Remember me</span>
             </label>
             <a
               href="/forgot-password"
-              className="text-sm text-green-600 hover:underline"
+              className="text-sm text-orange-600 hover:underline"
             >
-              Forgot Password?
+              Forgot password?
             </a>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 mt-4 text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full py-3 text-white bg-orange-500 rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
-            Sign in
+            Sign In
           </button>
         </form>
 
-        <div className="flex items-center my-6">
-          <span className="flex-1 h-px bg-gray-300"></span>
-          <span className="mx-2 text-sm text-gray-500">OR</span>
-          <span className="flex-1 h-px bg-gray-300"></span>
-        </div>
-
-        <div className="space-y-4">
-          <button className="w-full py-2 px-4 flex items-center justify-center text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
-              alt="Google"
-              className="w-5 h-5 mr-2"
-            />
-            Continue with Google
-          </button>
-          <button className="w-full py-2 px-4 flex items-center justify-center text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg"
-              alt="Facebook"
-              className="w-5 h-5 mr-2"
-            />
-            Continue with Facebook
-          </button>
-        </div>
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Don’t have an account?{" "}
+          <a href="/signup" className="text-orange-600 hover:underline">
+            Signup
+          </a>
+        </p>
       </div>
     </div>
   );
