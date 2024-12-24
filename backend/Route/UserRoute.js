@@ -17,6 +17,7 @@ import {
   loginUser,
   addHealthData,
   getHealthData,
+  googleLogin,
   updateHealthData,
   deleteHealthData,
 } from '../Controller/UserController.js';
@@ -26,7 +27,8 @@ const userRoute = Router();
 // Register and login routes
 userRoute.post('/register', registerUser);
 userRoute.post('/login', loginUser);
-
+userRoute.get('/google',googleLogin);
+userRoute.get('/google/callback',googleLogin);
 // Health data CRUD routes
 userRoute.post('/health', addHealthData);
 userRoute.get('/health/:userId', getHealthData);
