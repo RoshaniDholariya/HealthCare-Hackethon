@@ -47,7 +47,6 @@ const SignIn = () => {
         </p>
 
         <div className="flex gap-4 mt-6">
-<<<<<<< HEAD
           <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
@@ -56,17 +55,6 @@ const SignIn = () => {
             />
           </button>
         </div>
-=======
-           <a href="/googlelogin"> <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
-                alt="Google"
-                className="w-20 h-6"
-              />
-            </button>
-            </a>
-          </div>
->>>>>>> b0d03a11e3d9c2a052f63643e150566e44095f09
 
         <div className="flex items-center my-6">
           <span className="flex-1 h-px bg-gray-300"></span>
