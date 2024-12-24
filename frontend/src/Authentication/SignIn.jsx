@@ -13,15 +13,15 @@ const SignIn = () => {
     e.preventDefault();
     setError("");
     try {
-      const response = await axios.post("http://localhost:3000/api/user/login", formData);
+      const response = await axios.post(
+        "http://localhost:3000/api/user/login",
+        formData
+      );
       console.log("User signed in:", response.data);
-
-      // Save the token in localStorage or other storage if required
       localStorage.setItem("authToken", response.data.token);
 
       alert("Login successful!");
-      // Redirect user after successful login, e.g., to the dashboard
-      window.location.href = "/dashboard";
+      window.location.href = "/patientform";
     } catch (error) {
       setError(
         error.response?.data?.message || "An error occurred. Please try again."
@@ -47,20 +47,20 @@ const SignIn = () => {
         </p>
 
         <div className="flex gap-4 mt-6">
-            <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
-                alt="Google"
-                className="w-20 h-6"
-              />
-            </button>
-          </div>
+          <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
+              alt="Google"
+              className="w-20 h-6"
+            />
+          </button>
+        </div>
 
         <div className="flex items-center my-6">
-            <span className="flex-1 h-px bg-gray-300"></span>
-            <span className="mx-4 text-gray-500">or Sign in with</span>
-            <span className="flex-1 h-px bg-gray-300"></span>
-          </div>
+          <span className="flex-1 h-px bg-gray-300"></span>
+          <span className="mx-4 text-gray-500">or Sign in with</span>
+          <span className="flex-1 h-px bg-gray-300"></span>
+        </div>
 
         {error && <div className="text-red-500 text-center my-2">{error}</div>}
 
