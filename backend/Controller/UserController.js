@@ -121,57 +121,57 @@ export const googleLogin = async (req, res) => {
   }
 };
 // CRUD operations for health data
-export const addHealthData = async (req, res) => {
-  const { userId, healthData } = req.body;
+// export const addHealthData = async (req, res) => {
+//   const { userId, healthData } = req.body;
 
-  try {
-    const data = await prisma.healthData.create({
-      data: { userId, healthData },
-    });
+//   try {
+//     const data = await prisma.healthData.create({
+//       data: { userId, healthData },
+//     });
 
-    res.status(201).json({ message: 'Health data added successfully', data });
-  } catch (err) {
-    console.error('Error adding health data:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+//     res.status(201).json({ message: 'Health data added successfully', data });
+//   } catch (err) {
+//     console.error('Error adding health data:', err.message);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };
 
-export const getHealthData = async (req, res) => {
-  const { userId } = req.params;
+// export const getHealthData = async (req, res) => {
+//   const { userId } = req.params;
 
-  try {
-    const data = await prisma.healthData.findMany({ where: { userId } });
-    res.status(200).json({ data });
-  } catch (err) {
-    console.error('Error fetching health data:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+//   try {
+//     const data = await prisma.healthData.findMany({ where: { userId } });
+//     res.status(200).json({ data });
+//   } catch (err) {
+//     console.error('Error fetching health data:', err.message);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };
 
-export const updateHealthData = async (req, res) => {
-  const { id, healthData } = req.body;
+// export const updateHealthData = async (req, res) => {
+//   const { id, healthData } = req.body;
 
-  try {
-    const updatedData = await prisma.healthData.update({
-      where: { id },
-      data: { healthData },
-    });
+//   try {
+//     const updatedData = await prisma.healthData.update({
+//       where: { id },
+//       data: { healthData },
+//     });
 
-    res.status(200).json({ message: 'Health data updated successfully', updatedData });
-  } catch (err) {
-    console.error('Error updating health data:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+//     res.status(200).json({ message: 'Health data updated successfully', updatedData });
+//   } catch (err) {
+//     console.error('Error updating health data:', err.message);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };
 
-export const deleteHealthData = async (req, res) => {
-  const { id } = req.params;
+// export const deleteHealthData = async (req, res) => {
+//   const { id } = req.params;
 
-  try {
-    await prisma.healthData.delete({ where: { id } });
-    res.status(200).json({ message: 'Health data deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting health data:', err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+//   try {
+//     await prisma.healthData.delete({ where: { id } });
+//     res.status(200).json({ message: 'Health data deleted successfully' });
+//   } catch (err) {
+//     console.error('Error deleting health data:', err.message);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };

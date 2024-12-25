@@ -30,9 +30,9 @@ userRoute.post('/login', loginUser);
 userRoute.get('/google',googleLogin);
 userRoute.get('/google/callback',googleLogin);
 // Health data CRUD routes
-userRoute.post('/health', addHealthData);
-userRoute.get('/health/:userId', getHealthData);
-userRoute.put('/health', updateHealthData);
-userRoute.delete('/health/:id', deleteHealthData);
+// userRoute.post('/health', addHealthData);
+// userRoute.get('/health/:userId', getHealthData);
+// userRoute.put('/health', updateHealthData);
+// userRoute.delete('/health/:id', deleteHealthData);
 
 export default userRoute;
