@@ -1,20 +1,25 @@
-import express from "express";
-import dotenv from "dotenv";
-import userRoute from "./Route/UserRoute.js";
-import cors from 'cors';
-
-// Enable CORS for all origins (for development)
-
-dotenv.config();
-
-
-const app=express();
-
-const PORT =process.env.PORT || 3000
-app.use(cors());
+const express = require("express");
+const authRoutes = require("./routes/authRoute");
+const detailsRoutes = require("./routes/detailsRoute");
+const cookieParser = require("cookie-parser");
+const cors = require("cors")
+const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
-// Routes
-app.use('/api/user', userRoute);
+app.use(cors({
+  origin: "http://localhost:5173",  
+  credentials: true,
+}));
 
-app.listen(PORT,()=>console.log(`server is running on PORT ${PORT}`))
+
+// Define routes
+app.use("/auth", authRoutes);
+app.use("/details", detailsRoutes);
+
+// Set up the port (default to 5000 if not set)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

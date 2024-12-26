@@ -1,155 +1,181 @@
 import React, { useState } from "react";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import axios from "axios";
+import OAuth from "./OAuth";
 import { useNavigate } from "react-router-dom";
 
-const Signup = () => {
+const SignUp = () => {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    email: "",
     username: "",
-    phoneNumber: "",
+    email: "",
     password: "",
+    otp: ""
   });
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError("");
-
     try {
-      const response = await axios.post(
-        "http://localhost:3000/api/user/register",
-        formData
-      );
+      await axios.post("http://localhost:5000/auth/register", formData);
+      setStep(2);
+    } catch (error) {
+      setError(error.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if (response.data.success) {
-        alert("Signup successful! Redirecting to sign-in page.");
-        navigate("/signin");
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const response = await axios.post("http://localhost:5000/auth/verify-otp", {
+        email: formData.email,
+        otp: formData.otp,
+      });
+
+      const userId = response.data.userId; // Extract userId from the response
+      if (userId) {
+        // Navigate to patientform and pass userId as state
+        navigate("/patientform", { state: { userId } });
       } else {
-        setError(
-          response.data.message || "Registration failed. Please try again."
-        );
+        setError("User ID not received from server.");
       }
     } catch (error) {
-      if (error.response) {
-        console.error("Backend error:", error.response.data);
-        setError(error.response.data.message || "An error occurred.");
-      } else {
-        console.error("Error:", error.message);
-        setError("Something went wrong. Please try again later.");
-      }
+      setError(error.response?.data?.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen flex justify-center items-center"
-      style={{
-        backgroundImage: "url('/path/to/your/background.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-3xl backdrop-blur-md">
-        <h1 className="text-3xl font-bold text-center text-gray-800">
-          Create Account
-        </h1>
-        <p className="mt-2 text-center text-gray-600">
-          Already have an account?{" "}
-          <a href="/signin" className="text-orange-600 hover:underline">
-            Sign in
-          </a>
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-teal-50 p-4 font-inter">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-3xl text-center font-bold">Join CureNest</CardTitle>
+          <p className="text-center text-gray-600 mt-2">Begin your healthcare journey</p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {error && <div className="text-red-500 text-center mt-4">{error}</div>}
-        <form className="mt-6" onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Username
-            </label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Username"
-              className="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email"
-              className="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              placeholder="Phone Number"
-              className="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password"
-              className="w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3 text-white bg-orange-500 rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            Sign Up
-          </button>
-
-          <div className="flex items-center my-6">
-            <span className="flex-1 h-px bg-gray-300"></span>
-            <span className="mx-4 text-gray-500">or Sign up with</span>
-            <span className="flex-1 h-px bg-gray-300"></span>
-          </div>
-          <div className="flex gap-4 mt-6">
-            <a href="/googlelogin">
-              <button className="flex items-center justify-center w-full px-4 py-3 bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
-                  alt="Google"
-                  className="w-20 h-6"
+          {step === 1 ? (
+            <form onSubmit={handleSignUp} className="space-y-6">
+              <div>
+                <Label>Username</Label>
+                <Input
+                  type="text"
+                  name="username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Enter your username"
+                  className="mt-1"
                 />
-              </button>
+              </div>
+
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your@email.com"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="mt-1"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-teal-600 hover:bg-teal-700" 
+                disabled={loading}
+              >
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              <OAuth />
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <div>
+                <Label>Enter OTP</Label>
+                <Input
+                  type="text"
+                  name="otp"
+                  required
+                  value={formData.otp}
+                  onChange={handleChange}
+                  placeholder="Enter 6-digit OTP"
+                  className="mt-1"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Please check your email for the verification code
+                </p>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-teal-600 hover:bg-teal-700" 
+                disabled={loading}
+              >
+                {loading ? "Verifying..." : "Verify OTP"}
+              </Button>
+            </form>
+          )}
+
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <a href="/signin" className="font-medium text-teal-600 hover:text-teal-500">
+              Sign in
             </a>
-          </div>
-        </form>
-      </div>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Signup;
+export default SignUp;
