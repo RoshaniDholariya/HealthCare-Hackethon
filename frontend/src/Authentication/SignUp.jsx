@@ -16,6 +16,11 @@ const SignUp = () => {
     username: "",
     email: "",
     password: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
     otp: ""
   });
   const [error, setError] = useState("");
@@ -48,10 +53,9 @@ const SignUp = () => {
         email: formData.email,
         otp: formData.otp,
       });
-
-      const userId = response.data.userId; // Extract userId from the response
+      
+      const userId = response.data.userId;
       if (userId) {
-        // Navigate to patientform and pass userId as state
         navigate("/patientform", { state: { userId } });
       } else {
         setError("User ID not received from server.");
@@ -79,7 +83,7 @@ const SignUp = () => {
           )}
 
           {step === 1 ? (
-            <form onSubmit={handleSignUp} className="space-y-6">
+            <form onSubmit={handleSignUp} className="space-y-4">
               <div>
                 <Label>Username</Label>
                 <Input
@@ -119,9 +123,75 @@ const SignUp = () => {
                 />
               </div>
 
+              <div>
+                <Label>Phone Number</Label>
+                <Input
+                  type="tel"
+                  name="phone"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Enter your phone number"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label>Address</Label>
+                <Input
+                  type="text"
+                  name="address"
+                  required
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter your street address"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>City</Label>
+                  <Input
+                    type="text"
+                    name="city"
+                    required
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="City"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label>State</Label>
+                  <Input
+                    type="text"
+                    name="state"
+                    required
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="State"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>ZIP Code</Label>
+                <Input
+                  type="text"
+                  name="zipCode"
+                  required
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  placeholder="ZIP Code"
+                  className="mt-1"
+                />
+              </div>
+
               <Button 
                 type="submit" 
-                className="w-full bg-teal-600 hover:bg-teal-700" 
+                className="w-full bg-teal-600 hover:bg-teal-700 mt-6" 
                 disabled={loading}
               >
                 {loading ? "Creating Account..." : "Create Account"}

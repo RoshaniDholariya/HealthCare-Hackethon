@@ -18,7 +18,7 @@ app.use("/auth", authRoutes);
 app.use("/details", detailsRoutes);
 
 // Set up the port (default to 5000 if not set)
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
