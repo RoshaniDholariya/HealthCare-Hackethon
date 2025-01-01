@@ -43,46 +43,43 @@ const verifyOtp = async (req, res) => {
 
   await prisma.userVerification.delete({ where: { id: verification.id } });
 
-  res.status(200).json({ message: "Email verified successfully",
-    userId: user.id,
-   });
+  res
+    .status(200)
+    .json({ message: "Email verified successfully", userId: user.id });
 };
 
 const login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-  
-      // Find the user by email
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return res.status(404).json({ message: "User not found" });
-  
-      // Validate the password
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) return res.status(400).json({ message: "Invalid password" });
-  
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET || "your_secret_key",
-        { expiresIn: "1d" }
-      );
-  
-      // Set the token as a cookie
-      res.cookie("token", token, {
-        httpOnly: true, // Prevents access to the cookie from JavaScript
-        secure: process.env.NODE_ENV === "production", // Sends cookie only over HTTPS in production
-        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
-        sameSite: "strict", // Prevents CSRF attacks
-      });
-  
-      // Send response
-      res.status(200).json({ message: "Login successful" });
-    } catch (error) {
-      console.error("Error during login:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  };
-  
+  try {
+    const { email, password } = req.body;
+
+    // Find the user by email
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Validate the password
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return res.status(400).json({ message: "Invalid password" });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET || "your_secret_key",
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production", // Enable in production
+      maxAge: 3600000, // 1 hour
+    });
+
+    res.status(200).json({ message: "Login successful", data: user });
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 const GoogleAuth = async (req, res) => {
   const { username, email, googlePhotoURL } = req.body;
@@ -176,4 +173,114 @@ const GoogleAuth = async (req, res) => {
   }
 };
 
-module.exports = { register, verifyOtp, login, GoogleAuth };
+const getAvailableSlots = async (req, res) => {
+  const { doctorId, organizationId } = req.query;
+
+  const doctorIdInt = parseInt(doctorId, 10);
+  const organizationIdInt = parseInt(organizationId, 10);
+
+  try {
+    if (isNaN(doctorIdInt) || isNaN(organizationIdInt)) {
+      return res.status(400).json({ error: "Invalid doctorId or organizationId." });
+    }
+    const slots = await prisma.slot.findMany({
+      where: {
+        doctorId: doctorIdInt,
+        organizationId: organizationIdInt,
+      },
+    });
+
+    const availableSlots = slots
+      .map((slot) => {
+        if (Array.isArray(slot.slotDetails)) {
+          const filteredDetails = slot.slotDetails.filter((detail) => !detail.isBooked);
+          if (filteredDetails.length > 0) {
+            return { ...slot, slotDetails: filteredDetails };
+          }
+        }
+        return null;
+      })
+      .filter(Boolean); // Remove null values
+
+    res.status(200).json(availableSlots);
+  } catch (error) {
+    console.error("Error fetching available slots:", error.message);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching available slots." });
+  }
+};
+
+const bookAppointment = async (req, res) => {
+  const { userId, doctorId, organizationId, date, timeSlot } = req.body;
+  const userIdint = parseInt(userId, 10);
+
+  try {
+    const doctorIdInt = parseInt(doctorId, 10);
+    const organizationIdInt = parseInt(organizationId, 10);
+
+    // Fetch the slots for the specified doctor and organization
+    const slotData = await prisma.slot.findFirst({
+      where: {
+        doctorId: doctorIdInt,
+        organizationId: organizationIdInt,
+      },
+    });
+
+    if (!slotData) {
+      return res.status(404).json({ error: "No slots found for the given doctor and organization." });
+    }
+
+    // Parse slotDetails and check if the timeSlot is available
+    const slotDetails = slotData.slotDetails;
+    const slotIndex = slotDetails.findIndex(
+      (slot) => slot.timeSlot === timeSlot && !slot.isBooked
+    );
+
+    if (slotIndex === -1) {
+      return res.status(400).json({ error: "This slot is already booked or does not exist." });
+    }
+
+    // Mark the slot as booked
+    slotDetails[slotIndex].isBooked = true;
+
+    await prisma.slot.update({
+      where: { id: slotData.id },
+      data: { slotDetails },
+    });
+
+    // Create the appointment and connect it to an existing doctor and user
+    const appointment = await prisma.appointment.create({
+      data: {
+        date: new Date(date),
+        timeSlot,
+        status: "Pending",
+        user: {
+          connect: {
+            id: userIdint,  // Connect the user by their ID
+          },
+        },
+        doctor: {
+          connect: {
+            id: doctorIdInt,  // Connect the doctor by their ID (no need for doctorId)
+          },
+        },
+        organization: {
+          connect: {
+            id: organizationIdInt, // Connect the organization by its ID
+          },
+        },
+      },
+    });
+    
+
+    res.status(201).json(appointment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while booking the appointment." });
+  }
+};
+
+
+
+module.exports = { register, verifyOtp, login, GoogleAuth, getAvailableSlots,bookAppointment };

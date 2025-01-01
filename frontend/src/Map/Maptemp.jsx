@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import mapboxgl from "mapbox-gl";
 import { 
   Loader2, Navigation, Phone, AlertCircle, 
   Accessibility, Search, MapPin, Clock,
@@ -12,9 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import "mapbox-gl/dist/mapbox-gl.css";
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-routing-machine';
 
-mapboxgl.accessToken = "pk.eyJ1Ijoia3NoaXRpai0tMTIzIiwiYSI6ImNtNTVjbmt4aDFlODUybnNlMXZiYXE5MnkifQ.oMukhMaIA2A129LS8QrmVg"
+// Fix for default markers
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const HospitalLocator = () => {
   const [latitude, setLatitude] = useState(null);
@@ -27,11 +34,10 @@ const HospitalLocator = () => {
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewType, setViewType] = useState("map");
-  const [showDirections, setShowDirections] = useState(false);
-  const [route, setRoute] = useState(null);
   const [travelTime, setTravelTime] = useState(null);
-  const mapContainerRef = useRef(null);
-  const [map, setMap] = useState(null);
+  const mapRef = useRef(null);
+  const leafletMap = useRef(null);
+  const routingControl = useRef(null);
 
   const fetchHospitalsFromOverpass = async (lat, lon, radius = 6000) => {
     const query = `
@@ -50,7 +56,6 @@ const HospitalLocator = () => {
     try {
       const response = await fetch(url);
       const data = await response.json();
-      console.log(data)
       return data.elements
         .filter((element) => element.tags && element.tags.name)
         .map((element) => ({
@@ -80,132 +85,92 @@ const HospitalLocator = () => {
     return (R * c).toFixed(1);
   };
 
-  const getDirections = async (startLat, startLon, endLat, endLon) => {
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${startLon},${startLat};${endLon},${endLat}?geometries=geojson&access_token=${mapboxgl.accessToken}`
-      );
-      const data = await response.json();
-      
-      if (data.routes && data.routes[0]) {
-        setRoute(data.routes[0].geometry);
-        setTravelTime(Math.round(data.routes[0].duration / 60));
-        
-        if (map.getSource('route')) {
-          map.getSource('route').setData(data.routes[0].geometry);
-        } else {
-          map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: {
-              type: 'geojson',
-              data: data.routes[0].geometry
-            },
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#3b82f6',
-              'line-width': 4,
-              'line-opacity': 0.75
-            }
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching directions:", error);
+  const getDirections = (startLat, startLon, endLat, endLon) => {
+    if (routingControl.current) {
+      leafletMap.current.removeControl(routingControl.current);
     }
+
+    routingControl.current = L.Routing.control({
+      waypoints: [
+        L.latLng(startLat, startLon),
+        L.latLng(endLat, endLon)
+      ],
+      routeWhileDragging: false,
+      addWaypoints: false,
+      createMarker: () => null
+    }).addTo(leafletMap.current);
+
+    routingControl.current.on('routesfound', (e) => {
+      const routes = e.routes;
+      const time = Math.round(routes[0].summary.totalTime / 60);
+      setTravelTime(time);
+    });
   };
 
   const displayMap = (lat, lon, hospitals) => {
-    if (!mapContainerRef.current) return;
+    if (!mapRef.current) return;
 
-    if (!map) {
-      const initializedMap = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: "mapbox://styles/mapbox/light-v11",
-        center: [lon, lat],
-        zoom: 13,
-      });
+    if (!leafletMap.current) {
+      leafletMap.current = L.map(mapRef.current).setView([lat, lon], 13);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(leafletMap.current);
 
-      initializedMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      initializedMap.addControl(new mapboxgl.GeolocateControl({
-        positionOptions: {
-          enableHighAccuracy: true
-        },
-        trackUserLocation: true
-      }), 'top-right');
-
+      // Add location accuracy circle
       if (accuracy) {
-        initializedMap.on('load', () => {
-          initializedMap.addSource("accuracy-radius", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [lon, lat],
-              },
-              properties: {
-                radius: accuracy,
-              },
-            },
-          });
-
-          initializedMap.addLayer({
-            id: "accuracy-radius",
-            type: "circle",
-            source: "accuracy-radius",
-            paint: {
-              "circle-radius": {
-                stops: [[0, 0], [20, accuracy * initializedMap.getZoom()]],
-              },
-              "circle-color": "#4264fb",
-              "circle-opacity": 0.2,
-            },
-          });
-        });
+        L.circle([lat, lon], {
+          radius: accuracy,
+          color: '#4264fb',
+          fillColor: '#4264fb',
+          fillOpacity: 0.2
+        }).addTo(leafletMap.current);
       }
 
-      new mapboxgl.Marker({ color: "#4264fb" })
-        .setLngLat([lon, lat])
-        .setPopup(
-          new mapboxgl.Popup().setHTML(`
-            <div class="font-poppins">
-              <h4 class="font-bold">Your Location</h4>
-              <p>Accuracy: ${accuracy ? `±${Math.round(accuracy)}m` : "Unknown"}</p>
-            </div>
-          `)
-        )
-        .addTo(initializedMap);
-
-      hospitals.forEach((hospital) => {
-        const marker = new mapboxgl.Marker({
-          color: hospital.emergency ? "#dc2626" : "#ef4444",
+      // Add user location marker
+      L.marker([lat, lon], {
+        icon: L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color: #4264fb; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
+          iconSize: [15, 15]
         })
-          .setLngLat([hospital.lon, hospital.lat])
-          .setPopup(
-            new mapboxgl.Popup().setHTML(`
-              <div class="font-poppins">
-                <h4 class="font-bold">${hospital.name}</h4>
-                <p>${hospital.address}</p>
-                ${hospital.phone !== "No phone available" ? `<p>📞 ${hospital.phone}</p>` : ""}
-                ${hospital.emergency ? "<p>🚨 Emergency Services Available</p>" : ""}
-                ${hospital.wheelchair ? "<p>♿ Wheelchair Accessible</p>" : ""}
-              </div>
-            `)
-          )
-          .addTo(initializedMap);
+      })
+      .bindPopup(`
+        <div class="font-poppins">
+          <h4 class="font-bold">Your Location</h4>
+          <p>Accuracy: ${accuracy ? `±${Math.round(accuracy)}m` : "Unknown"}</p>
+        </div>
+      `)
+      .addTo(leafletMap.current);
 
-        marker.getElement().addEventListener('click', () => {
+      // Add hospital markers
+      hospitals.forEach((hospital) => {
+        const marker = L.marker([hospital.lat, hospital.lon], {
+          icon: L.divIcon({
+            className: 'hospital-div-icon',
+            html: `<div style="background-color: ${hospital.emergency ? '#dc2626' : '#ef4444'}; width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center;">
+              <span style="color: white; font-size: 16px;">H</span>
+            </div>`,
+            iconSize: [25, 25]
+          })
+        })
+        .bindPopup(`
+          <div class="font-poppins">
+            <h4 class="font-bold">${hospital.name}</h4>
+            <p>${hospital.address}</p>
+            ${hospital.phone !== "No phone available" ? `<p>📞 ${hospital.phone}</p>` : ""}
+            ${hospital.emergency ? "<p>🚨 Emergency Services Available</p>" : ""}
+            ${hospital.wheelchair ? "<p>♿ Wheelchair Accessible</p>" : ""}
+          </div>
+        `)
+        .addTo(leafletMap.current);
+
+        marker.on('click', () => {
           setSelectedHospital(hospital);
         });
       });
-      
-      setMap(initializedMap);
     } else {
-      map.setCenter([lon, lat]);
+      leafletMap.current.setView([lat, lon]);
     }
   };
 
@@ -259,7 +224,9 @@ const HospitalLocator = () => {
   useEffect(() => {
     fetchLocationAndHospitals();
     return () => {
-      if (map) map.remove();
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+      }
     };
   }, []);
 
@@ -287,7 +254,7 @@ const HospitalLocator = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+   <div className="flex flex-col h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -331,7 +298,7 @@ const HospitalLocator = () => {
         {viewType === "map" ? (
           <div className="flex-1 flex">
             <div className="flex-1 relative">
-              <div ref={mapContainerRef} className="w-full h-full" />
+              <div ref={mapRef} className="w-full h-full" />
               
               {accuracy && (
                 <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3">
